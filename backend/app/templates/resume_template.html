@@ -1,0 +1,258 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page {
+        size: Letter;
+        margin: 0.65in 0.75in;
+      }
+
+      body {
+        font-family: "Times New Roman", Times, serif;
+        color: #111;
+        font-size: 12pt;
+        line-height: 1.28;
+      }
+
+      .name {
+        text-align: center;
+        font-size: 25pt;
+        font-weight: 700;
+        letter-spacing: 0.2px;
+        margin: 0;
+      }
+
+      .contact {
+        text-align: center;
+        font-size: 11pt;
+        margin-top: 4px;
+        margin-bottom: 8px;
+      }
+
+      .contact a {
+        color: #111;
+        text-decoration: underline;
+      }
+
+      .divider {
+        border-top: 1px solid #b8b8b8;
+        margin: 8px 0 8px;
+      }
+
+      .headline {
+        font-size: 14pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin: 4px 0 8px;
+      }
+
+      .section {
+        margin-top: 10px;
+      }
+
+      .section-title {
+        border-top: 1px solid #b8b8b8;
+        padding-top: 7px;
+        font-size: 13pt;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+
+      .summary {
+        margin: 0;
+      }
+
+      ul {
+        margin: 4px 0 0 24px;
+        padding: 0;
+      }
+
+      li {
+        margin: 0 0 2px 0;
+      }
+
+      .skills-line {
+        margin: 0;
+      }
+
+      .edu-item {
+        margin-bottom: 10px;
+      }
+
+      .plain-lines p {
+        margin: 0 0 4px 0;
+      }
+
+      .exp-item {
+        margin-bottom: 10px;
+      }
+
+      .exp-role {
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .exp-org {
+        margin: 0;
+        font-style: italic;
+      }
+
+      .exp-row {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .exp-row td {
+        padding: 0;
+        vertical-align: top;
+      }
+
+      .exp-date,
+      .exp-location {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .edu-row {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      .edu-row td {
+        padding: 0;
+        vertical-align: top;
+      }
+
+      .edu-degree {
+        font-weight: 700;
+      }
+
+      .edu-date {
+        text-align: right;
+        white-space: nowrap;
+      }
+
+      .edu-school {
+        font-style: italic;
+      }
+
+      .edu-gpa {
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 class="name">{{ header.name }}</h1>
+    <div class="contact">{{ header.contact_html | safe }}</div>
+    <div class="divider"></div>
+
+    {% if header.headline %}
+      <div class="headline">{{ header.headline }}</div>
+    {% endif %}
+
+    {% if summary %}
+      <p class="summary">{{ summary }}</p>
+    {% endif %}
+
+    {% if core_competencies %}
+      <section class="section">
+        <div class="section-title">Core Competencies</div>
+        <ul>
+          {% for item in core_competencies %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if technologies %}
+      <section class="section">
+        <div class="section-title">Technologies</div>
+        <p class="skills-line"><strong>Technologies:</strong> {{ technologies }}</p>
+      </section>
+    {% endif %}
+
+    {% if technical_skills %}
+      <section class="section">
+        <div class="section-title">Technical Skills</div>
+        <p class="skills-line">{{ technical_skills }}</p>
+      </section>
+    {% endif %}
+
+    {% if experiences %}
+      <section class="section">
+        <div class="section-title">Professional Experience</div>
+        {% for exp in experiences %}
+          <div class="exp-item">
+            <table class="exp-row">
+              <tr>
+                <td class="exp-role">{{ exp.role }}</td>
+                <td class="exp-date">{{ exp.date }}</td>
+              </tr>
+              <tr>
+                <td class="exp-org">{{ exp.org }}</td>
+                <td class="exp-location">{{ exp.location }}</td>
+              </tr>
+            </table>
+            {% if exp.bullets %}
+              <ul>
+                {% for bullet in exp.bullets %}
+                  <li>{{ bullet }}</li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    {% if education_entries %}
+      <section class="section">
+        <div class="section-title">Education</div>
+        {% for edu in education_entries %}
+          <div class="edu-item">
+            <table class="edu-row">
+              <tr>
+                <td class="edu-degree">{{ edu.degree }}</td>
+                <td class="edu-date">{{ edu.date }}</td>
+              </tr>
+              <tr>
+                <td class="edu-school">{{ edu.school }}</td>
+                <td></td>
+              </tr>
+            </table>
+            {% if edu.gpa %}
+              <p class="edu-gpa">{{ edu.gpa }}</p>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </section>
+    {% endif %}
+
+    {% if honors %}
+      <section class="section">
+        <div class="section-title">Honors &amp; Recognition</div>
+        <ul>
+          {% for item in honors %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </section>
+    {% endif %}
+
+    {% if extras %}
+      {% for extra in extras %}
+        <section class="section">
+          <div class="section-title">{{ extra.title }}</div>
+          <div class="plain-lines">
+            {% for line in extra.lines %}
+              <p>{{ line }}</p>
+            {% endfor %}
+          </div>
+        </section>
+      {% endfor %}
+    {% endif %}
+  </body>
+</html>

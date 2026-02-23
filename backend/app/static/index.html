@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Resume Optimizer</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>AI Resume Optimizer</h1>
+      <p class="subtitle">Paste resume + job description to generate an ATS-friendly, truthful rewrite.</p>
+
+      <section class="panel">
+        <label for="resumeFile">Resume File (PDF or DOCX)</label>
+        <input id="resumeFile" type="file" accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document" />
+        <button id="parseBtn" type="button">Parse Uploaded Resume</button>
+        <p id="parseStatus" class="subtitle"></p>
+
+        <label for="resume">Resume Text</label>
+        <textarea id="resume" placeholder="Paste your resume text here"></textarea>
+
+        <label for="jd">Job Description</label>
+        <textarea id="jd" placeholder="Paste job description here"></textarea>
+
+        <button id="optimizeBtn">Optimize Resume</button>
+      </section>
+
+      <section class="panel" id="resultPanel" hidden>
+        <h2>Result</h2>
+        <p id="mode"></p>
+        <p id="summary"></p>
+
+        <div class="metrics">
+          <div><strong>Coverage:</strong> <span id="coverage"></span></div>
+          <div><strong>Present Keywords:</strong> <span id="present"></span></div>
+          <div><strong>Missing Keywords:</strong> <span id="missing"></span></div>
+        </div>
+
+        <label for="optimized">Optimized Resume</label>
+        <textarea id="optimized" readonly></textarea>
+        <button id="downloadPdfBtn" type="button">Download Optimized Resume PDF</button>
+
+        <div id="warnings"></div>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
