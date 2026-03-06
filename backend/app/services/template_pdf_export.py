@@ -65,9 +65,18 @@ def _normalize_heading(line: str) -> Optional[str]:
 
 def _contact_html(contact_line: str) -> str:
     parts = [p.strip() for p in contact_line.split("|") if p.strip()]
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for part in parts:
+        key = part.lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(part)
+
     output: list[str] = []
 
-    for part in parts:
+    for part in deduped:
         low = part.lower()
         if "@" in part and "http" not in low:
             output.append(f'<a href="mailto:{escape(part)}">{escape(part)}</a>')
@@ -164,10 +173,25 @@ def _parse_resume(resume_text: str) -> dict[str, Any]:
             }
         )
 
-    if not summary and sections.get("general"):
-        summary = " ".join(sections["general"][:4]).strip()
+    summary_keywords = ""
+
+    general_lines = sections.get("general", [])
+    if general_lines:
+        first_general = general_lines[0].strip()
+        if "•" in first_general:
+            summary_keywords = first_general
+            if not summary:
+                summary = " ".join(general_lines[1:]).strip()
+        elif not summary:
+            summary = " ".join(general_lines[:4]).strip()
 
     headline, summary = _split_headline_summary(headline, summary)
+
+    # If no dedicated keyword line yet, try extracting it from summary text.
+    if not summary_keywords:
+        summary_keywords, summary = _split_summary_keywords(summary)
+
+    summary = _normalize_summary_text(summary)
 
     return {
         "header": {
@@ -175,6 +199,7 @@ def _parse_resume(resume_text: str) -> dict[str, Any]:
             "contact_html": _contact_html(contact),
             "headline": headline,
         },
+        "summary_keywords": summary_keywords,
         "summary": summary,
         "core_competencies": core_competencies,
         "technologies": technologies,
@@ -227,6 +252,62 @@ def _split_headline_summary(headline: str, summary: str) -> tuple[str, str]:
                 return new_headline.strip(), new_summary
 
     return headline.strip(), summary
+
+
+def _normalize_summary_text(summary: str) -> str:
+    text = summary.strip()
+    if not text:
+        return text
+
+    low = text.lower()
+    if low.startswith("with "):
+        return "Experienced professional " + text
+    if low.startswith("and "):
+        return "Experienced professional " + text
+
+    return text
+
+
+def _split_summary_keywords(summary: str) -> tuple[str, str]:
+    if not summary or "•" not in summary:
+        return "", summary
+
+    markers = [
+        " results-oriented ",
+        " experienced ",
+        " skilled ",
+        " proven ",
+        " detail-oriented ",
+        " strategic ",
+        " automation-focused ",
+    ]
+
+    low = f" {summary.lower()} "
+    split_at = -1
+    for marker in markers:
+        pos = low.find(marker)
+        if pos > 0:
+            split_at = pos
+            break
+
+    if split_at > 0:
+        left = summary[:split_at].strip(" •")
+        right = summary[split_at:].strip()
+        if "•" in left:
+            return left, right
+
+    parts = [p.strip() for p in summary.split("•") if p.strip()]
+    if len(parts) >= 2 and len(parts[-1]) > 90:
+        tail = parts[-1]
+        for token in [" with ", " who ", " and "]:
+            k = tail.lower().find(token)
+            if k > 20:
+                lead = " • ".join(parts[:-1] + [tail[:k].strip()])
+                body = tail[k:].strip()
+                if "•" in lead:
+                    return lead, body
+
+    return "", summary
 
 
 def _split_org_location(text: str) -> tuple[str, str]:
@@ -470,3 +551,191 @@ def build_resume_pdf_from_template(resume_text: str, filename: str = "optimized_
             pass
 
     return pdf_bytes, _safe_filename(filename)
+
+# --- Deterministic 2-page export enforcement ---
+
+def _style_for_level(level: int) -> dict[str, float]:
+    presets = [
+        {
+            "page_margin_top": 0.65,
+            "page_margin_side": 0.75,
+            "page_margin_bottom": 0.65,
+            "body_font": 12,
+            "line_height": 1.28,
+            "name_font": 25,
+            "contact_font": 11,
+            "headline_font": 14,
+            "section_title_font": 13,
+            "section_gap": 10,
+            "exp_gap": 10,
+            "edu_gap": 10,
+            "bullet_gap": 2,
+        },
+        {
+            "page_margin_top": 0.55,
+            "page_margin_side": 0.65,
+            "page_margin_bottom": 0.55,
+            "body_font": 11,
+            "line_height": 1.23,
+            "name_font": 23,
+            "contact_font": 10,
+            "headline_font": 13,
+            "section_title_font": 12,
+            "section_gap": 8,
+            "exp_gap": 8,
+            "edu_gap": 8,
+            "bullet_gap": 1,
+        },
+        {
+            "page_margin_top": 0.5,
+            "page_margin_side": 0.58,
+            "page_margin_bottom": 0.5,
+            "body_font": 10.5,
+            "line_height": 1.18,
+            "name_font": 21,
+            "contact_font": 9.5,
+            "headline_font": 12,
+            "section_title_font": 11.5,
+            "section_gap": 7,
+            "exp_gap": 7,
+            "edu_gap": 7,
+            "bullet_gap": 1,
+        },
+        {
+            "page_margin_top": 0.45,
+            "page_margin_side": 0.5,
+            "page_margin_bottom": 0.45,
+            "body_font": 10,
+            "line_height": 1.15,
+            "name_font": 20,
+            "contact_font": 9,
+            "headline_font": 11.5,
+            "section_title_font": 11,
+            "section_gap": 6,
+            "exp_gap": 6,
+            "edu_gap": 6,
+            "bullet_gap": 0,
+        },
+    ]
+    return presets[min(level, len(presets) - 1)]
+
+
+def _apply_compact_limits(context: dict[str, Any], level: int, bullet_limit: Optional[int]) -> dict[str, Any]:
+    ctx = {
+        "header": dict(context.get("header", {})),
+        "summary_keywords": context.get("summary_keywords", ""),
+        "summary": context.get("summary", ""),
+        "core_competencies": list(context.get("core_competencies", [])),
+        "technologies": context.get("technologies", ""),
+        "technical_skills": context.get("technical_skills", ""),
+        "experiences": [
+            {
+                "role": exp.get("role", ""),
+                "org": exp.get("org", ""),
+                "location": exp.get("location", ""),
+                "date": exp.get("date", ""),
+                "bullets": list(exp.get("bullets", [])),
+            }
+            for exp in context.get("experiences", [])
+        ],
+        "education_entries": [dict(e) for e in context.get("education_entries", [])],
+        "honors": list(context.get("honors", [])),
+        "extras": [dict(e) for e in context.get("extras", [])],
+    }
+
+    if bullet_limit is not None:
+        for exp in ctx["experiences"]:
+            exp["bullets"] = exp["bullets"][:bullet_limit]
+
+    if level >= 1:
+        ctx["honors"] = ctx["honors"][:4]
+        ctx["core_competencies"] = ctx["core_competencies"][:8]
+
+    if level >= 2:
+        ctx["summary"] = ctx["summary"][:700].rstrip()
+        ctx["core_competencies"] = ctx["core_competencies"][:7]
+
+    if level >= 3:
+        ctx["summary"] = ctx["summary"][:560].rstrip()
+        ctx["core_competencies"] = ctx["core_competencies"][:6]
+        ctx["honors"] = ctx["honors"][:3]
+
+    return ctx
+
+
+def _pdf_page_count(pdf_bytes: bytes) -> int:
+    from io import BytesIO
+
+    from pypdf import PdfReader
+
+    reader = PdfReader(BytesIO(pdf_bytes))
+    return len(reader.pages)
+
+
+def _truncate_pdf_to_two_pages(pdf_bytes: bytes) -> bytes:
+    from io import BytesIO
+
+    from pypdf import PdfReader, PdfWriter
+
+    reader = PdfReader(BytesIO(pdf_bytes))
+    writer = PdfWriter()
+    for i in range(min(2, len(reader.pages))):
+        writer.add_page(reader.pages[i])
+
+    out = BytesIO()
+    writer.write(out)
+    return out.getvalue()
+
+
+def build_resume_pdf_from_template(resume_text: str, filename: str = "optimized_resume") -> tuple[bytes, str]:
+    if len(resume_text.strip()) < 20:
+        raise ValueError("Resume text is too short to export.")
+
+    base_context = _parse_resume(resume_text)
+    env = _template_env()
+    template = env.get_template("resume_template.html")
+
+    variants = [
+        (0, None),
+        (1, 6),
+        (2, 5),
+        (3, 4),
+    ]
+
+    last_pdf: Optional[bytes] = None
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch()
+        try:
+            for level, bullet_limit in variants:
+                context = _apply_compact_limits(base_context, level, bullet_limit)
+                style = _style_for_level(level)
+                html = template.render(**context, **style)
+
+                page = browser.new_page()
+                page.set_content(html, wait_until="load")
+                pdf_bytes = page.pdf(
+                    format="Letter",
+                    print_background=True,
+                    margin={
+                        "top": f"{style['page_margin_top']}in",
+                        "right": f"{style['page_margin_side']}in",
+                        "bottom": f"{style['page_margin_bottom']}in",
+                        "left": f"{style['page_margin_side']}in",
+                    },
+                )
+                page.close()
+
+                last_pdf = pdf_bytes
+                if _pdf_page_count(pdf_bytes) <= 2:
+                    return pdf_bytes, _safe_filename(filename)
+        finally:
+            browser.close()
+
+    if last_pdf is None:
+        raise RuntimeError("Failed to generate PDF")
+
+    # Hard cap: guarantee output never exceeds 2 pages.
+    if _pdf_page_count(last_pdf) > 2:
+        last_pdf = _truncate_pdf_to_two_pages(last_pdf)
+
+    return last_pdf, _safe_filename(filename)

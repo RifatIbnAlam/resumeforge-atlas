@@ -5,19 +5,19 @@
     <style>
       @page {
         size: Letter;
-        margin: 0.65in 0.75in;
+        margin: {{ page_margin_top }}in {{ page_margin_side }}in {{ page_margin_bottom }}in {{ page_margin_side }}in;
       }
 
       body {
         font-family: "Times New Roman", Times, serif;
         color: #111;
-        font-size: 12pt;
-        line-height: 1.28;
+        font-size: {{ body_font }}pt;
+        line-height: {{ line_height }};
       }
 
       .name {
         text-align: center;
-        font-size: 25pt;
+        font-size: {{ name_font }}pt;
         font-weight: 700;
         letter-spacing: 0.2px;
         margin: 0;
@@ -25,9 +25,9 @@
 
       .contact {
         text-align: center;
-        font-size: 11pt;
-        margin-top: 4px;
-        margin-bottom: 8px;
+        font-size: {{ contact_font }}pt;
+        margin-top: 3px;
+        margin-bottom: 6px;
       }
 
       .contact a {
@@ -37,27 +37,27 @@
 
       .divider {
         border-top: 1px solid #b8b8b8;
-        margin: 8px 0 8px;
+        margin: 6px 0 6px;
       }
 
       .headline {
-        font-size: 14pt;
+        font-size: {{ headline_font }}pt;
         font-weight: 700;
         text-transform: uppercase;
-        margin: 4px 0 8px;
+        margin: 3px 0 7px;
       }
 
       .section {
-        margin-top: 10px;
+        margin-top: {{ section_gap }}px;
       }
 
       .section-title {
         border-top: 1px solid #b8b8b8;
-        padding-top: 7px;
-        font-size: 13pt;
+        padding-top: 6px;
+        font-size: {{ section_title_font }}pt;
         font-weight: 700;
         text-transform: uppercase;
-        margin-bottom: 6px;
+        margin-bottom: 5px;
       }
 
       .summary {
@@ -65,12 +65,12 @@
       }
 
       ul {
-        margin: 4px 0 0 24px;
+        margin: 3px 0 0 22px;
         padding: 0;
       }
 
       li {
-        margin: 0 0 2px 0;
+        margin: 0 0 {{ bullet_gap }}px 0;
       }
 
       .skills-line {
@@ -78,7 +78,7 @@
       }
 
       .edu-item {
-        margin-bottom: 10px;
+        margin-bottom: {{ edu_gap }}px;
       }
 
       .plain-lines p {
@@ -86,7 +86,7 @@
       }
 
       .exp-item {
-        margin-bottom: 10px;
+        margin-bottom: {{ exp_gap }}px;
       }
 
       .exp-role {
@@ -110,7 +110,8 @@
       }
 
       .exp-date,
-      .exp-location {
+      .exp-location,
+      .edu-date {
         text-align: right;
         white-space: nowrap;
       }
@@ -129,11 +130,6 @@
         font-weight: 700;
       }
 
-      .edu-date {
-        text-align: right;
-        white-space: nowrap;
-      }
-
       .edu-school {
         font-style: italic;
       }
@@ -150,6 +146,10 @@
 
     {% if header.headline %}
       <div class="headline">{{ header.headline }}</div>
+    {% endif %}
+
+    {% if summary_keywords %}
+      <p class="summary"><strong>{{ summary_keywords }}</strong></p>
     {% endif %}
 
     {% if summary %}

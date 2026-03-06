@@ -146,6 +146,55 @@ def _dedupe_resume_text(text: str) -> str:
     return "\n".join(normalized).strip()
 
 
+def _ensure_headline_summary_break(text: str) -> str:
+    lines = text.splitlines()
+    if not lines:
+        return text
+
+    split_markers = (
+        " results-oriented ",
+        " experienced ",
+        " skilled ",
+        " proven ",
+        " detail-oriented ",
+        " strategic ",
+    )
+
+    out: list[str] = []
+    for line in lines:
+        raw = line.rstrip()
+        low = f" {raw.lower()} "
+        if "•" in raw:
+            split_at = -1
+            for marker in split_markers:
+                idx = low.find(marker)
+                if idx > 0:
+                    split_at = idx
+                    break
+            if split_at > 0:
+                left = raw[:split_at].rstrip(" •")
+                right = raw[split_at:].strip()
+                out.append(left)
+                out.append("")
+                out.append(right)
+                continue
+        out.append(raw)
+
+    fixed: list[str] = []
+    for i, line in enumerate(out):
+        fixed.append(line)
+        if (
+            i + 1 < len(out)
+            and "•" in line
+            and out[i + 1].strip()
+            and not out[i + 1].strip().endswith(":")
+            and out[i + 1].strip().upper() != out[i + 1].strip()
+        ):
+            fixed.append("")
+
+    return "\n".join(fixed).strip()
+
+
 def optimize_resume(resume_text: str, job_description: str) -> dict:
     resume_text = resume_text.strip()
     job_description = job_description.strip()
@@ -172,6 +221,7 @@ def optimize_resume(resume_text: str, job_description: str) -> dict:
 
     optimized_resume = _dedupe_resume_text(llm_result["optimized_resume"])
     optimized_resume = _ensure_experience_dates(optimized_resume, resume_text)
+    optimized_resume = _ensure_headline_summary_break(optimized_resume)
 
     return {
         "optimized_resume": optimized_resume,
