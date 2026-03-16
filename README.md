@@ -81,3 +81,16 @@ Response:
 ## Important constraints
 - The tool is designed to avoid fabricating experience.
 - Users should verify every generated statement before submitting.
+
+
+### `POST /api/export-docx`
+Request:
+```json
+{
+  "optimized_resume": "...",
+  "filename": "optimized_resume"
+}
+```
+
+Response:
+- DOCX file download (`application/vnd.openxmlformats-officedocument.wordprocessingml.document`)

@@ -8,6 +8,7 @@ from .services.optimizer import optimize_resume
 from .services.pdf_export import build_resume_pdf
 from .services.resume_parser import parse_resume_file
 from .services.template_pdf_export import build_resume_pdf_from_template
+from .services.docx_export import build_resume_docx
 
 
 class OptimizeRequest(BaseModel):
@@ -106,6 +107,24 @@ def export_pdf(payload: ExportPdfRequest) -> StreamingResponse:
     return StreamingResponse(
         iter([pdf_bytes]),
         media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
+    )
+
+
+@app.post("/api/export-docx")
+def export_docx(payload: ExportPdfRequest) -> StreamingResponse:
+    try:
+        docx_bytes, safe_filename = build_resume_docx(
+            payload.optimized_resume, payload.filename
+        )
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    except Exception as err:  # pragma: no cover
+        raise HTTPException(status_code=500, detail="Failed to generate DOCX") from err
+
+    return StreamingResponse(
+        iter([docx_bytes]),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{safe_filename}"'},
     )
 

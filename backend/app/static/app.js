@@ -12,6 +12,7 @@ const presentEl = document.getElementById("present");
 const missingEl = document.getElementById("missing");
 const optimizedEl = document.getElementById("optimized");
 const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+const downloadWordBtn = document.getElementById("downloadWordBtn");
 const warningsEl = document.getElementById("warnings");
 
 parseBtn.addEventListener("click", async () => {
@@ -92,6 +93,50 @@ downloadPdfBtn.addEventListener("click", async () => {
   }
 });
 
+
+
+downloadWordBtn.addEventListener("click", async () => {
+  const optimized_resume = optimizedEl.value.trim();
+  if (optimized_resume.length < 20) {
+    alert("Please optimize your resume first.");
+    return;
+  }
+
+  downloadWordBtn.disabled = true;
+  downloadWordBtn.textContent = "Generating DOCX...";
+
+  try {
+    const res = await fetch("/api/export-docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        optimized_resume,
+        filename: "optimized_resume",
+      }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "DOCX generation failed");
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "optimized_resume.docx";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message || "Could not download DOCX.");
+  } finally {
+    downloadWordBtn.disabled = false;
+    downloadWordBtn.textContent = "Download Optimized Resume Word";
+  }
+});
+
 optimizeBtn.addEventListener("click", async () => {
   const resume_text = resumeEl.value.trim();
   const job_description = jdEl.value.trim();
@@ -137,5 +182,51 @@ optimizeBtn.addEventListener("click", async () => {
   } finally {
     optimizeBtn.disabled = false;
     optimizeBtn.textContent = "Optimize Resume";
+  }
+});
+
+
+// Fallback delegated handler in case browser cached an older binding state.
+document.addEventListener("click", async (event) => {
+  const target = event.target;
+  if (!(target instanceof HTMLElement)) return;
+  if (target.id !== "downloadWordBtn") return;
+
+  const optimized_resume = optimizedEl.value.trim();
+  if (optimized_resume.length < 20) {
+    alert("Please optimize your resume first.");
+    return;
+  }
+
+  target.setAttribute("disabled", "true");
+  const prev = target.textContent || "";
+  target.textContent = "Generating DOCX...";
+
+  try {
+    const res = await fetch("/api/export-docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ optimized_resume, filename: "optimized_resume" }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "DOCX generation failed");
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "optimized_resume.docx";
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert(err.message || "Could not download DOCX.");
+  } finally {
+    target.removeAttribute("disabled");
+    target.textContent = prev || "Download Optimized Resume Word";
   }
 });
